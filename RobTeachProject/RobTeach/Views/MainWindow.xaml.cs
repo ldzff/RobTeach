@@ -2,7 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
+// Explicitly using System.Windows.Shapes.Shape to avoid ambiguity
+// using System.Windows.Shapes; // This line can be removed if all Shape usages are qualified
 using Microsoft.Win32;
 using RobTeach.Services;
 using RobTeach.Models;
@@ -37,9 +38,10 @@ namespace RobTeach.Views
 
         // Collections for managing DXF entities and their WPF shape representations
         private readonly List<object> _selectedDxfEntities = new List<object>(); // Stores original DXF entities selected by the user.
-        private readonly Dictionary<Shape, object> _wpfShapeToDxfEntityMap = new Dictionary<Shape, object>(); // Maps WPF shapes on canvas back to their source DXF entities.
+        // Qualified System.Windows.Shapes.Shape for dictionary key
+        private readonly Dictionary<System.Windows.Shapes.Shape, object> _wpfShapeToDxfEntityMap = new Dictionary<System.Windows.Shapes.Shape, object>();
         private readonly Dictionary<string, EntityObject> _dxfEntityHandleMap = new Dictionary<string, EntityObject>(); // Maps DXF entity handles to entities for quick lookup when loading configs.
-        private readonly List<Polyline> _trajectoryPreviewPolylines = new List<Polyline>(); // Keeps track of trajectory preview polylines for easy removal.
+        private readonly List<System.Windows.Shapes.Polyline> _trajectoryPreviewPolylines = new List<System.Windows.Shapes.Polyline>(); // Keeps track of trajectory preview polylines for easy removal.
 
         // Fields for CAD Canvas Zoom/Pan functionality
         private ScaleTransform _scaleTransform;         // Handles scaling (zoom) of the canvas content.
@@ -137,12 +139,12 @@ namespace RobTeach.Views
                         if (!string.IsNullOrEmpty(entity.Handle)) _dxfEntityHandleMap[entity.Handle] = entity; }
 
                     // Convert DXF entities to WPF shapes for display.
-                    List<Shape> wpfShapes = _cadService.GetWpfShapesFromDxf(_currentDxfDocument);
+                    List<System.Windows.Shapes.Shape> wpfShapes = _cadService.GetWpfShapesFromDxf(_currentDxfDocument); // Qualified List<System.Windows.Shapes.Shape>
                     int shapeIndex = 0; // Used to correlate flat list of shapes with iterated DXF entities.
                     // Helper action to map DXF entity to WPF shape, add to canvas, and set up click handling.
                     Action<EntityObject> mapAndAddShape = (dxfEntity) => {
                         if (shapeIndex < wpfShapes.Count && wpfShapes[shapeIndex] != null) {
-                            var wpfShape = wpfShapes[shapeIndex];
+                            var wpfShape = wpfShapes[shapeIndex]; // Type is System.Windows.Shapes.Shape from list
                             wpfShape.Stroke = DefaultStrokeBrush; wpfShape.StrokeThickness = DefaultStrokeThickness;
                             wpfShape.MouseLeftButtonDown += OnCadEntityClicked; // Enable selection
                             _wpfShapeToDxfEntityMap[wpfShape] = dxfEntity; // Map WPF shape back to DXF entity
@@ -191,7 +193,8 @@ namespace RobTeach.Views
         private void OnCadEntityClicked(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return; // Event already handled (e.g., by panning).
-            if (sender is Shape clickedShape && _wpfShapeToDxfEntityMap.TryGetValue(clickedShape, out object dxfEntity))
+            // Qualified System.Windows.Shapes.Shape for casting sender
+            if (sender is System.Windows.Shapes.Shape clickedShape && _wpfShapeToDxfEntityMap.TryGetValue(clickedShape, out object dxfEntity))
             {
                 if (_selectedDxfEntities.Contains(dxfEntity))
                 {
@@ -234,7 +237,8 @@ namespace RobTeach.Views
 
                 if (entityPoints != null && entityPoints.Count >= 2) // A trajectory needs at least two points.
                 {
-                    Polyline trajectoryPolyline = new Polyline {
+                    // Qualified System.Windows.Shapes.Polyline
+                    System.Windows.Shapes.Polyline trajectoryPolyline = new System.Windows.Shapes.Polyline {
                         Points = new PointCollection(entityPoints),
                         Stroke = Brushes.Red, // Trajectory color
                         StrokeThickness = SelectedStrokeThickness, // Make trajectory distinct
