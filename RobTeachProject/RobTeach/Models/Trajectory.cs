@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Windows; // For Point
+using System.Windows; // This using statement makes System.Windows.Point available as 'Point'
 
 namespace RobTeach.Models
 {
@@ -22,8 +22,9 @@ namespace RobTeach.Models
         /// <summary>
         /// Gets or sets the list of points that define the path of the trajectory.
         /// These points are typically in the coordinate system intended for the robot.
+        /// Uses <see cref="System.Windows.Point"/>.
         /// </summary>
-        public List<Point> Points { get; set; } = new List<Point>();
+        public List<System.Windows.Point> Points { get; set; } = new List<System.Windows.Point>(); // Explicitly qualified
 
         /// <summary>
         /// Gets or sets the nozzle number to be used for this trajectory.

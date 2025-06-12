@@ -47,7 +47,7 @@ namespace RobTeach.Views
         private ScaleTransform _scaleTransform;         // Handles scaling (zoom) of the canvas content.
         private TranslateTransform _translateTransform; // Handles translation (pan) of the canvas content.
         private TransformGroup _transformGroup;         // Combines scale and translate transforms.
-        private Point _panStartPoint;                   // Stores the starting point of a mouse pan operation.
+        private System.Windows.Point _panStartPoint;    // Qualified: Stores the starting point of a mouse pan operation.
         private bool _isPanning;                        // Flag indicating if a pan operation is currently in progress.
         private Rect _dxfBoundingBox = Rect.Empty;      // Stores the calculated bounding box of the entire loaded DXF document.
 
@@ -228,7 +228,7 @@ namespace RobTeach.Views
             // Generate and draw trajectories for each selected DXF entity.
             foreach (object dxfEntity in _selectedDxfEntities)
             {
-                List<Point> entityPoints = null;
+                List<System.Windows.Point> entityPoints = null; // Qualified List<System.Windows.Point>
                 // Convert different DXF entity types to lists of points.
                 if (dxfEntity is netDxf.Entities.Line line) entityPoints = _cadService.ConvertLineToPoints(line);
                 else if (dxfEntity is netDxf.Entities.Arc arc) entityPoints = _cadService.ConvertArcToPoints(arc, arcResolutionDegrees);
@@ -239,7 +239,7 @@ namespace RobTeach.Views
                 {
                     // Qualified System.Windows.Shapes.Polyline
                     System.Windows.Shapes.Polyline trajectoryPolyline = new System.Windows.Shapes.Polyline {
-                        Points = new PointCollection(entityPoints),
+                        Points = new PointCollection(entityPoints), // PointCollection takes IEnumerable<System.Windows.Point>
                         Stroke = Brushes.Red, // Trajectory color
                         StrokeThickness = SelectedStrokeThickness, // Make trajectory distinct
                         StrokeDashArray = new DoubleCollection(new double[] { 4, 2 }), // Dashed line style
@@ -572,7 +572,7 @@ namespace RobTeach.Views
         /// </summary>
         private void CadCanvas_MouseWheel(object sender, MouseWheelEventArgs e) {
             if (_currentDxfDocument == null) return;
-            Point position = e.GetPosition(CadCanvas);
+            System.Windows.Point position = e.GetPosition(CadCanvas); // Qualified System.Windows.Point
             double zoomFactor = e.Delta > 0 ? 1.15 : 1 / 1.15;
 
             double oldScaleX = _scaleTransform.ScaleX;
@@ -593,7 +593,7 @@ namespace RobTeach.Views
             if (_currentDxfDocument == null) return;
             if (e.ChangedButton == MouseButton.Middle && e.ButtonState == MouseButtonState.Pressed) {
                 _isPanning = true;
-                _panStartPoint = e.GetPosition(CadCanvas);
+                _panStartPoint = e.GetPosition(CadCanvas); // Returns System.Windows.Point
                 CadCanvas.CaptureMouse();
                 CadCanvas.Cursor = Cursors.ScrollAll;
                 e.Handled = true;
@@ -605,7 +605,7 @@ namespace RobTeach.Views
         /// </summary>
         private void CadCanvas_MouseMove(object sender, MouseEventArgs e) {
             if (_isPanning && e.MiddleButton == MouseButtonState.Pressed) {
-                Point currentPoint = e.GetPosition(CadCanvas);
+                System.Windows.Point currentPoint = e.GetPosition(CadCanvas); // Qualified System.Windows.Point
                 Vector delta = currentPoint - _panStartPoint;
                 _translateTransform.X += delta.X;
                 _translateTransform.Y += delta.Y;

@@ -5,9 +5,9 @@ using netDxf.Entities;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Windows;
+using System.Windows; // Retain for Point, Size, Rect if used, or qualify all
 using System.Windows.Media;
-// using System.Windows.Shapes; // Can be removed if all usages are qualified
+// using System.Windows.Shapes; // All Shape usages are qualified
 
 namespace RobTeach.Services
 {
@@ -33,75 +33,90 @@ namespace RobTeach.Services
             }
             if (!File.Exists(filePath))
             {
-                // This exception is specific and helpful for UI to catch.
                 throw new FileNotFoundException("DXF file not found.", filePath);
             }
             try
             {
-                // netDxf.DxfDocument.Load can throw various exceptions including DxfVersionNotSupportedException
-                // or others if the file is corrupt or not a valid DXF.
                 DxfDocument dxf = DxfDocument.Load(filePath);
                 return dxf;
             }
-            catch (Exception ex) // Catching general Exception as netDxf can throw various internal errors.
+            catch (Exception ex)
             {
-                // Wrap the original exception to provide context, allowing UI to catch specific ones if needed.
-                // For example, the UI could catch netDxf.DxfVersionNotSupportedException specifically.
                 throw new Exception($"Error loading or parsing DXF file: {ex.Message}", ex);
             }
         }
 
         /// <summary>
         /// Converts entities from a <see cref="DxfDocument"/> into a list of WPF <see cref="System.Windows.Shapes.Shape"/> objects for display.
-        /// Supports Lines, Arcs, and LwPolylines.
         /// </summary>
-        /// <param name="dxfDocument">The DXF document containing entities to convert.</param>
-        /// <returns>A list of WPF <see cref="System.Windows.Shapes.Shape"/> objects. Returns an empty list if the document is null or contains no supported entities.</returns>
-        /// <remarks>
-        /// The Y-coordinate from DXF (typically positive upwards) is directly mapped to WPF's Y-coordinate
-        /// (positive downwards). Canvas transformations in the UI are expected to handle final display orientation (e.g., Y-axis inversion).
-        /// Stroke and Fill properties are set minimally (e.g., Fill=Transparent for hit-testing Paths);
-        /// final styling (colors, thickness) is expected to be applied in the UI layer (MainWindow.xaml.cs).
-        /// </remarks>
         public List<System.Windows.Shapes.Shape> GetWpfShapesFromDxf(DxfDocument dxfDocument)
         {
-            var wpfShapes = new List<System.Windows.Shapes.Shape>(); // Qualified List type
+            var wpfShapes = new List<System.Windows.Shapes.Shape>();
             if (dxfDocument == null) return wpfShapes;
 
             // Process Lines
-            foreach (netDxf.Entities.Line dxfLine in dxfDocument.Entities.Lines) // Corrected access
+            foreach (netDxf.Entities.Line dxfLine in dxfDocument.Entities.Lines)
             {
-                var wpfLine = new System.Windows.Shapes.Line // Already qualified
+                var wpfLine = new System.Windows.Shapes.Line
                 {
                     X1 = dxfLine.StartPoint.X,
-                    Y1 = dxfLine.StartPoint.Y, // Direct Y mapping
+                    Y1 = dxfLine.StartPoint.Y,
                     X2 = dxfLine.EndPoint.X,
                     Y2 = dxfLine.EndPoint.Y,
-                    IsHitTestVisible = true // Ensure lines are clickable
+                    IsHitTestVisible = true
                 };
                 wpfShapes.Add(wpfLine);
             }
 
             // Process Arcs
-            foreach (netDxf.Entities.Arc dxfArc in dxfDocument.Entities.Arcs) // Corrected access
+            foreach (netDxf.Entities.Arc dxfArc in dxfDocument.Entities.Arcs)
             {
-                Point startPoint = new Point(dxfArc.StartPoint.X, dxfArc.StartPoint.Y);
-                Point endPoint = new Point(dxfArc.EndPoint.X, dxfArc.EndPoint.Y);
-                double radius = dxfArc.Radius;
+                // Calculate Arc Start Point using DXF properties
+                double startAngleRad = dxfArc.StartAngle * Math.PI / 180.0;
+                double arcStartX = dxfArc.Center.X + dxfArc.Radius * Math.Cos(startAngleRad);
+                double arcStartY = dxfArc.Center.Y + dxfArc.Radius * Math.Sin(startAngleRad);
+                var pathStartPoint = new System.Windows.Point(arcStartX, arcStartY);
 
+                // Calculate Arc End Point for ArcSegment.Point property
+                double endAngleRad = dxfArc.EndAngle * Math.PI / 180.0;
+                double arcEndX = dxfArc.Center.X + dxfArc.Radius * Math.Cos(endAngleRad);
+                double arcEndY = dxfArc.Center.Y + dxfArc.Radius * Math.Sin(endAngleRad);
+                var arcSegmentEndPoint = new System.Windows.Point(arcEndX, arcEndY);
+
+                double radius = dxfArc.Radius;
                 SweepDirection sweepDirection = (dxfArc.Normal.Z >= 0) ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
+
+                // Calculate total angle sweep for IsLargeArc.
+                // Ensure angles are handled correctly if they cross 0/360 boundary.
                 double sweepAngleDegrees = dxfArc.EndAngle - dxfArc.StartAngle;
                 if (sweepDirection == SweepDirection.Clockwise && sweepAngleDegrees > 0) sweepAngleDegrees -= 360;
-                if (sweepDirection == SweepDirection.Counterclockwise && sweepAngleDegrees < 0) sweepAngleDegrees += 360;
+                else if (sweepDirection == SweepDirection.Counterclockwise && sweepAngleDegrees < 0) sweepAngleDegrees += 360;
+                // If Normal.Z is negative, the interpretation of IsLargeArc might need to be flipped
+                // relative to the absolute sweep angle if WPF's SweepDirection handles the primary directionality.
+                // For now, using Math.Abs.
                 bool isLargeArc = Math.Abs(sweepAngleDegrees) > 180.0;
 
-                ArcSegment arcSegment = new ArcSegment(endPoint, new Size(radius, radius), 0, isLargeArc, sweepDirection, true);
-                PathFigure pathFigure = new PathFigure { StartPoint = startPoint, IsClosed = false };
+
+                ArcSegment arcSegment = new ArcSegment
+                {
+                    Point = arcSegmentEndPoint, // Use calculated end point
+                    Size = new System.Windows.Size(radius, radius),
+                    IsLargeArc = isLargeArc,
+                    SweepDirection = sweepDirection,
+                    RotationAngle = 0, // DXF Arcs are circular, so no ellipse rotation.
+                    IsStroked = true
+                };
+
+                PathFigure pathFigure = new PathFigure
+                {
+                    StartPoint = pathStartPoint, // Use calculated start point
+                    IsClosed = false
+                };
                 pathFigure.Segments.Add(arcSegment);
                 PathGeometry pathGeometry = new PathGeometry();
                 pathGeometry.Figures.Add(pathFigure);
 
-                var wpfPath = new System.Windows.Shapes.Path // Qualified Path
+                var wpfPath = new System.Windows.Shapes.Path
                 {
                     Data = pathGeometry,
                     Fill = Brushes.Transparent,
@@ -111,18 +126,15 @@ namespace RobTeach.Services
             }
 
             // Process LwPolylines
-            foreach (netDxf.Entities.LwPolyline dxfPolyline in dxfDocument.Entities.LwPolylines) // Corrected access
+            foreach (netDxf.Entities.LwPolyline dxfPolyline in dxfDocument.Entities.LwPolylines)
             {
                 if (dxfPolyline.Vertices.Count < 1) continue;
 
                 PathFigure pathFigure = new PathFigure();
-                pathFigure.StartPoint = new Point(dxfPolyline.Vertices[0].Position.X, dxfPolyline.Vertices[0].Position.Y);
+                pathFigure.StartPoint = new System.Windows.Point(dxfPolyline.Vertices[0].Position.X, dxfPolyline.Vertices[0].Position.Y);
                 pathFigure.IsClosed = dxfPolyline.IsClosed;
 
-                if (dxfPolyline.Vertices.Count == 1)
-                {
-                    continue;
-                }
+                if (dxfPolyline.Vertices.Count == 1) continue;
 
                 for (int i = 0; i < dxfPolyline.Vertices.Count; i++)
                 {
@@ -130,10 +142,11 @@ namespace RobTeach.Services
                     var endVertexInfo = dxfPolyline.IsClosed ? dxfPolyline.Vertices[(i + 1) % dxfPolyline.Vertices.Count] :
                                          (i < dxfPolyline.Vertices.Count - 1 ? dxfPolyline.Vertices[i + 1] : null);
                     if (endVertexInfo == null && !dxfPolyline.IsClosed) break;
-                    Point endPoint = new Point(endVertexInfo.Position.X, endVertexInfo.Position.Y);
+                    System.Windows.Point endPoint = new System.Windows.Point(endVertexInfo.Position.X, endVertexInfo.Position.Y);
 
                     if (Math.Abs(startVertex.Bulge) > 0.0001)
                     {
+                        // TODO: Implement proper LwPolyline bulge to ArcSegment conversion.
                         LineSegment lineSegment = new LineSegment(endPoint, true);
                         pathFigure.Segments.Add(lineSegment);
                     }
@@ -144,11 +157,11 @@ namespace RobTeach.Services
                     }
                 }
 
-                if (pathFigure.Segments.Any() || dxfPolyline.Vertices.Count == 1)
+                if (pathFigure.Segments.Any()) // Only add if segments were created
                 {
                     PathGeometry pathGeometry = new PathGeometry();
                     pathGeometry.Figures.Add(pathFigure);
-                    var wpfPath = new System.Windows.Shapes.Path // Qualified Path
+                    var wpfPath = new System.Windows.Shapes.Path
                     {
                         Data = pathGeometry,
                         Fill = dxfPolyline.IsClosed ? Brushes.Transparent : null,
@@ -161,71 +174,84 @@ namespace RobTeach.Services
         }
 
         /// <summary>
-        /// Converts a DXF Line entity into a list of two points (start and end).
+        /// Converts a DXF Line entity into a list of two System.Windows.Point objects.
         /// </summary>
-        public List<Point> ConvertLineToPoints(netDxf.Entities.Line line)
+        public List<System.Windows.Point> ConvertLineToPoints(netDxf.Entities.Line line)
         {
-            var points = new List<Point>();
+            var points = new List<System.Windows.Point>();
             if (line == null) return points;
-            points.Add(new Point(line.StartPoint.X, line.StartPoint.Y));
-            points.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
+            points.Add(new System.Windows.Point(line.StartPoint.X, line.StartPoint.Y));
+            points.Add(new System.Windows.Point(line.EndPoint.X, line.EndPoint.Y));
             return points;
         }
 
         /// <summary>
-        /// Converts a DXF Arc entity into a list of discretized points.
+        /// Converts a DXF Arc entity into a list of discretized System.Windows.Point objects.
         /// </summary>
-        public List<Point> ConvertArcToPoints(netDxf.Entities.Arc arc, double resolutionDegrees)
+        public List<System.Windows.Point> ConvertArcToPoints(netDxf.Entities.Arc arc, double resolutionDegrees)
         {
-            var points = new List<Point>();
+            var points = new List<System.Windows.Point>();
             if (arc == null || resolutionDegrees <= 0) return points;
             double startAngleRad = arc.StartAngle * Math.PI / 180.0;
             double endAngleRad = arc.EndAngle * Math.PI / 180.0;
             double radius = arc.Radius;
-            Point center = new Point(arc.Center.X, arc.Center.Y);
+            System.Windows.Point center = new System.Windows.Point(arc.Center.X, arc.Center.Y); // Qualified Point
             bool isCounterClockwise = arc.Normal.Z >= 0;
+
             if (!isCounterClockwise) { while (endAngleRad > startAngleRad) endAngleRad -= 2 * Math.PI; }
             else { while (endAngleRad < startAngleRad) endAngleRad += 2 * Math.PI; }
+
             if (Math.Abs(arc.StartAngle - arc.EndAngle) < 0.0001 && Math.Abs(startAngleRad - endAngleRad) < 0.0001 * (Math.PI/180.0) ) {
                  endAngleRad = startAngleRad + (isCounterClockwise ? (2 * Math.PI) : (-2 * Math.PI)); }
+
             double stepRad = resolutionDegrees * Math.PI / 180.0;
             if (!isCounterClockwise) stepRad = -stepRad;
+
             double currentAngleRad = startAngleRad;
             bool continueLoop = true;
             while(continueLoop) {
-                points.Add(new Point(center.X + radius * Math.Cos(currentAngleRad), center.Y + radius * Math.Sin(currentAngleRad)));
+                points.Add(new System.Windows.Point(center.X + radius * Math.Cos(currentAngleRad),
+                                     center.Y + radius * Math.Sin(currentAngleRad)));
                 if (isCounterClockwise) { if (currentAngleRad >= endAngleRad - Math.Abs(stepRad) * 0.1) continueLoop = false; }
                 else { if (currentAngleRad <= endAngleRad + Math.Abs(stepRad) * 0.1) continueLoop = false; }
-                if(continueLoop) currentAngleRad += stepRad;
+                if(continueLoop) currentAngleRad += stepRad; else currentAngleRad = endAngleRad; // Ensure last point is at endAngle
             }
-            Point finalDxfEndPoint = new Point(arc.EndPoint.X, arc.EndPoint.Y);
-            if (!points.Any() || Point.Subtract(points.Last(), finalDxfEndPoint).Length > 0.001) {
-                if (points.Any() && Point.Subtract(points.Last(), finalDxfEndPoint).Length < resolutionDegrees * (Math.PI/180.0) * radius * 0.5) {
-                    points[points.Count -1] = finalDxfEndPoint; } else { points.Add(finalDxfEndPoint); }
+            // Ensure the final point is exactly the calculated end point of the arc if not already added.
+            // This handles cases where the loop terminates slightly off due to floating point arithmetic.
+            System.Windows.Point calculatedArcEndPoint = new System.Windows.Point(
+                center.X + radius * Math.Cos(endAngleRad),
+                center.Y + radius * Math.Sin(endAngleRad)
+            );
+            if (!points.Any() || System.Windows.Point.Subtract(points.Last(), calculatedArcEndPoint).Length > 0.001) {
+                 if (points.Any() && System.Windows.Point.Subtract(points.Last(), calculatedArcEndPoint).Length < Math.Abs(stepRad) * radius * 0.5) {
+                    points[points.Count -1] = calculatedArcEndPoint;
+                } else {
+                    points.Add(calculatedArcEndPoint);
+                }
             }
             return points;
         }
 
         /// <summary>
-        /// Converts a DXF LwPolyline entity into a list of discretized points.
+        /// Converts a DXF LwPolyline entity into a list of discretized System.Windows.Point objects.
         /// </summary>
-        public List<Point> ConvertLwPolylineToPoints(netDxf.Entities.LwPolyline polyline, double arcResolutionDegrees)
+        public List<System.Windows.Point> ConvertLwPolylineToPoints(netDxf.Entities.LwPolyline polyline, double arcResolutionDegrees)
         {
-            var points = new List<Point>();
+            var points = new List<System.Windows.Point>();
             if (polyline == null || polyline.Vertices.Count == 0) return points;
             for (int i = 0; i < polyline.Vertices.Count; i++) {
                 var currentVertexInfo = polyline.Vertices[i];
-                Point currentDxfPoint = new Point(currentVertexInfo.Position.X, currentVertexInfo.Position.Y);
+                System.Windows.Point currentDxfPoint = new System.Windows.Point(currentVertexInfo.Position.X, currentVertexInfo.Position.Y);
                 points.Add(currentDxfPoint);
                 if (Math.Abs(currentVertexInfo.Bulge) > 0.0001) {
                     if (!polyline.IsClosed && i == polyline.Vertices.Count - 1) continue;
-                    // TODO: Implement LwPolyline bulge to Arc conversion.
+                    // TODO: Implement LwPolyline bulge to Arc conversion for trajectory points.
                 }
             }
-            if (polyline.IsClosed && points.Count > 1 && Point.Subtract(points.First(), points.Last()).Length > 0.001) {
-                // points.Add(points[0]); // Potentially re-add first point if robot needs explicit closure for trajectories
+            if (polyline.IsClosed && points.Count > 1 && System.Windows.Point.Subtract(points.First(), points.Last()).Length > 0.001) {
+                 points.Add(points[0]); // Explicitly close the trajectory path for closed polylines
             } else if (polyline.Vertices.Count == 1 && !points.Any()){
-                 points.Add(new Point(polyline.Vertices[0].Position.X, polyline.Vertices[0].Position.Y));
+                 points.Add(new System.Windows.Point(polyline.Vertices[0].Position.X, polyline.Vertices[0].Position.Y));
             }
             return points;
         }
