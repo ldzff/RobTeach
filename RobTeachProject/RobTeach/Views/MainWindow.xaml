@@ -1,0 +1,55 @@
+<Window x:Class="RobTeach.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RobTeach.Views"
+        mc:Ignorable="d"
+        Title="RobTeach Application" Height="550" Width="850"
+        Closing="MainWindow_Closing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Row 0 for Load DXF / Actions -->
+            <RowDefinition Height="*"/>    <!-- Row 1 for CadCanvas -->
+            <RowDefinition Height="Auto"/> <!-- Row 2 for Config/Action Panel -->
+            <RowDefinition Height="Auto"/> <!-- Row 3 for Modbus Panel -->
+            <RowDefinition Height="Auto"/> <!-- Row 4 for StatusBar -->
+        </Grid.RowDefinitions>
+
+        <!-- Load DXF and Actions Button Bar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
+            <Button Content="Load DXF" Click="LoadDxfButton_Click" Name="LoadDxfButton" Padding="5" Margin="0,0,5,0"/>
+            <Button Content="Fit to View" Click="FitToViewButton_Click" Name="FitToViewButton" Padding="5"/>
+        </StackPanel>
+
+        <Canvas Grid.Row="1" Name="CadCanvas" Background="LightGray" Margin="5" ClipToBounds="True"/>
+
+        <!-- Configuration and Action Panel -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5" VerticalAlignment="Center">
+            <Label Content="Product:" VerticalAlignment="Center"/>
+            <TextBox Name="ProductNameTextBox" Width="120" VerticalAlignment="Center" Margin="0,0,10,0" Text="DefaultProduct"/>
+            <Label Content="Nozzle:" VerticalAlignment="Center"/>
+            <TextBox Name="NozzleNumberTextBox" Width="35" VerticalAlignment="Center" Text="1" Margin="0,0,10,0"/>
+            <CheckBox Name="IsWaterCheckBox" Content="Water Spray" VerticalAlignment="Center" IsChecked="True" Margin="0,0,10,0"/>
+            <Button Content="Save Config" Name="SaveConfigButton" Click="SaveConfigButton_Click" Margin="5,0" Padding="5"/>
+            <Button Content="Load Config" Name="LoadConfigButton" Click="LoadConfigButton_Click" Margin="5,0" Padding="5"/>
+            <Button Content="Send to Robot" Name="SendToRobotButton" Click="SendToRobotButton_Click" Margin="15,0,5,0" Padding="5" FontWeight="Bold" Background="LightGreen"/>
+        </StackPanel>
+
+        <!-- Modbus Panel -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="5" VerticalAlignment="Center">
+            <Label Content="Modbus IP:" VerticalAlignment="Center"/>
+            <TextBox Name="ModbusIpAddressTextBox" Width="100" VerticalAlignment="Center" Text="127.0.0.1" Margin="0,0,10,0"/>
+            <Label Content="Port:" VerticalAlignment="Center"/>
+            <TextBox Name="ModbusPortTextBox" Width="40" VerticalAlignment="Center" Text="502" Margin="0,0,10,0"/>
+            <Button Content="Connect" Name="ModbusConnectButton" Click="ModbusConnectButton_Click" Margin="5,0" Padding="5"/>
+            <Button Content="Disconnect" Name="ModbusDisconnectButton" Click="ModbusDisconnectButton_Click" Margin="5,0" Padding="5" IsEnabled="False"/>
+            <Ellipse Name="ModbusStatusIndicatorEllipse" Width="15" Height="15" Fill="Red" Margin="5,0,0,0" VerticalAlignment="Center" Stroke="DarkGray" StrokeThickness="1"/>
+            <TextBlock Name="ModbusStatusTextBlock" Text="Disconnected" VerticalAlignment="Center" Margin="5,0,0,0"/>
+        </StackPanel>
+
+        <StatusBar Grid.Row="4">
+            <TextBlock Name="StatusTextBlock" Text="Ready"/>
+        </StatusBar>
+    </Grid>
+</Window>

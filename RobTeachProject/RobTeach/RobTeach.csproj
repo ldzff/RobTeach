@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>RobTeach</RootNamespace>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EasyModbusTCP.NETCore" Version="1.0.0" />
+    <PackageReference Include="netDxf" Version="2023.11.10" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Services\CadService.cs" />
+    <Compile Include="Views\MainWindow.xaml.cs">
+      <DependentUpon>Views\MainWindow.xaml</DependentUpon>
+    </Compile>
+    <!-- Include files in Models, ViewModels, Utils if any are added later -->
+    <Compile Include="Models\**\*.cs" />
+    <Compile Include="ViewModels\**\*.cs" />
+    <Compile Include="Utils\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="Views\MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+</Project>
