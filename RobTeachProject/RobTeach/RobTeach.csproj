@@ -26,7 +26,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Program.cs" />
+    <!-- Removed Program.cs Compile line -->
     <Compile Include="Services\CadService.cs" />
     <Compile Include="Views\MainWindow.xaml.cs">
       <DependentUpon>Views\MainWindow.xaml</DependentUpon>
@@ -35,6 +35,10 @@
     <Compile Include="Models\**\*.cs" />
     <Compile Include="ViewModels\**\*.cs" />
     <Compile Include="Utils\**\*.cs" />
+     <Compile Include="Services\ModbusService.cs" />
+     <Compile Include="Services\ModbusResponse.cs" />
+     <Compile Include="Services\ConfigurationService.cs" />
+
   </ItemGroup>
 
   <ItemGroup>
