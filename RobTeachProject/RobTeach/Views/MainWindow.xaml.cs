@@ -153,7 +153,7 @@ namespace RobTeach.Views
                     // Process supported entity types using corrected access via .Entities property
                     _currentDxfDocument.Entities.Lines.ToList().ForEach(mapAndAddShape);
                     _currentDxfDocument.Entities.Arcs.ToList().ForEach(mapAndAddShape);
-                    _currentDxfDocument.Entities.LwPolylines.ToList().ForEach(mapAndAddShape);
+                    _currentDxfDocument.Entities.LwPolylines.ToList().ForEach(mapAndAddShape); // Corrected LwPolylines access
                     // TODO: Add other entity types (Circles, Ellipses, Polylines, etc.) if CadService supports them.
 
                     _dxfBoundingBox = GetDxfBoundingBox(_currentDxfDocument); // Calculate overall bounds.
@@ -232,7 +232,7 @@ namespace RobTeach.Views
                 // Convert different DXF entity types to lists of points.
                 if (dxfEntity is netDxf.Entities.Line line) entityPoints = _cadService.ConvertLineToPoints(line);
                 else if (dxfEntity is netDxf.Entities.Arc arc) entityPoints = _cadService.ConvertArcToPoints(arc, arcResolutionDegrees);
-                else if (dxfEntity is netDxf.Entities.LwPolyline poly) entityPoints = _cadService.ConvertLwPolylineToPoints(poly, arcResolutionDegrees);
+                else if (dxfEntity is LightWeightPolyline poly) entityPoints = _cadService.ConvertLwPolylineToPoints(poly, arcResolutionDegrees); // Corrected: LightWeightPolyline
                 // TODO: Add support for other entity types if CadService is extended.
 
                 if (entityPoints != null && entityPoints.Count >= 2) // A trajectory needs at least two points.
@@ -289,7 +289,7 @@ namespace RobTeach.Views
                     // Convert entity to points based on its type.
                     if (dxfEntity is netDxf.Entities.Line line) trajectory.Points = _cadService.ConvertLineToPoints(line);
                     else if (dxfEntity is netDxf.Entities.Arc arc) trajectory.Points = _cadService.ConvertArcToPoints(arc, arcResolutionDegrees);
-                    else if (dxfEntity is netDxf.Entities.LwPolyline poly) trajectory.Points = _cadService.ConvertLwPolylineToPoints(poly, arcResolutionDegrees);
+                    else if (dxfEntity is LightWeightPolyline poly) trajectory.Points = _cadService.ConvertLwPolylineToPoints(poly, arcResolutionDegrees); // Corrected: LightWeightPolyline
                     // TODO: Add support for other entity types if CadService is extended.
                     config.Trajectories.Add(trajectory); }
             }
