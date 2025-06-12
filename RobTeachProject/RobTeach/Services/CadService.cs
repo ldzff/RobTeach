@@ -69,7 +69,7 @@ namespace RobTeach.Services
             if (dxfDocument == null) return wpfShapes;
 
             // Process Lines
-            foreach (netDxf.Entities.Line dxfLine in dxfDocument.Lines)
+            foreach (netDxf.Entities.Line dxfLine in dxfDocument.Entities.Lines) // Corrected access
             {
                 var wpfLine = new System.Windows.Shapes.Line // Already qualified
                 {
@@ -83,7 +83,7 @@ namespace RobTeach.Services
             }
 
             // Process Arcs
-            foreach (netDxf.Entities.Arc dxfArc in dxfDocument.Arcs)
+            foreach (netDxf.Entities.Arc dxfArc in dxfDocument.Entities.Arcs) // Corrected access
             {
                 Point startPoint = new Point(dxfArc.StartPoint.X, dxfArc.StartPoint.Y);
                 Point endPoint = new Point(dxfArc.EndPoint.X, dxfArc.EndPoint.Y);
@@ -111,7 +111,7 @@ namespace RobTeach.Services
             }
 
             // Process LwPolylines
-            foreach (netDxf.Entities.LwPolyline dxfPolyline in dxfDocument.LwPolylines)
+            foreach (netDxf.Entities.LwPolyline dxfPolyline in dxfDocument.Entities.LwPolylines) // Corrected access
             {
                 if (dxfPolyline.Vertices.Count < 1) continue;
 

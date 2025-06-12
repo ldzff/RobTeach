@@ -150,10 +150,10 @@ namespace RobTeach.Views
                             _wpfShapeToDxfEntityMap[wpfShape] = dxfEntity; // Map WPF shape back to DXF entity
                             CadCanvas.Children.Add(wpfShape);
                             shapeIndex++; }};
-                    // Process supported entity types. Order matters if GetWpfShapesFromDxf returns a flat list in specific order.
-                    _currentDxfDocument.Lines.ToList().ForEach(mapAndAddShape);
-                    _currentDxfDocument.Arcs.ToList().ForEach(mapAndAddShape);
-                    _currentDxfDocument.LwPolylines.ToList().ForEach(mapAndAddShape);
+                    // Process supported entity types using corrected access via .Entities property
+                    _currentDxfDocument.Entities.Lines.ToList().ForEach(mapAndAddShape);
+                    _currentDxfDocument.Entities.Arcs.ToList().ForEach(mapAndAddShape);
+                    _currentDxfDocument.Entities.LwPolylines.ToList().ForEach(mapAndAddShape);
                     // TODO: Add other entity types (Circles, Ellipses, Polylines, etc.) if CadService supports them.
 
                     _dxfBoundingBox = GetDxfBoundingBox(_currentDxfDocument); // Calculate overall bounds.
