@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Linq; // Added for LINQ extension methods like .Any() and .Last()
 // using System.Windows.Shapes;
 
 namespace RobTeach.Services
@@ -93,7 +94,6 @@ namespace RobTeach.Services
                 wpfShapes.Add(wpfPath);
             }
 
-            // Corrected: LightWeightPolyline
             foreach (LightWeightPolyline dxfPolyline in dxfDocument.Entities.LwPolylines)
             {
                 if (dxfPolyline.Vertices.Count < 1) continue;
@@ -121,7 +121,7 @@ namespace RobTeach.Services
                         pathFigure.Segments.Add(lineSegment);
                     }
                 }
-                if (pathFigure.Segments.Any())
+                if (pathFigure.Segments.Any()) // Requires System.Linq
                 {
                     PathGeometry pathGeometry = new PathGeometry();
                     pathGeometry.Figures.Add(pathFigure);
@@ -165,14 +165,13 @@ namespace RobTeach.Services
                 if(continueLoop) currentAngleRad += stepRad; else currentAngleRad = endAngleRad;
             }
             System.Windows.Point calculatedArcEndPoint = new System.Windows.Point(center.X + radius * Math.Cos(endAngleRad), center.Y + radius * Math.Sin(endAngleRad));
-            if (!points.Any() || System.Windows.Point.Subtract(points.Last(), calculatedArcEndPoint).Length > 0.001) {
+            if (!points.Any() || System.Windows.Point.Subtract(points.Last(), calculatedArcEndPoint).Length > 0.001) { // Requires System.Linq for .Any() and .Last()
                  if (points.Any() && System.Windows.Point.Subtract(points.Last(), calculatedArcEndPoint).Length < Math.Abs(stepRad) * radius * 0.5) {
                     points[points.Count -1] = calculatedArcEndPoint; } else { points.Add(calculatedArcEndPoint); }
             }
             return points;
         }
 
-        // Corrected: LightWeightPolyline
         public List<System.Windows.Point> ConvertLwPolylineToPoints(LightWeightPolyline polyline, double arcResolutionDegrees)
         {
             var points = new List<System.Windows.Point>();
@@ -186,9 +185,9 @@ namespace RobTeach.Services
                     // TODO: Implement LwPolyline bulge to Arc conversion for trajectory points.
                 }
             }
-            if (polyline.IsClosed && points.Count > 1 && System.Windows.Point.Subtract(points.First(), points.Last()).Length > 0.001) {
+            if (polyline.IsClosed && points.Count > 1 && System.Windows.Point.Subtract(points.First(), points.Last()).Length > 0.001) { // Requires System.Linq for .First() and .Last()
                  points.Add(points[0]);
-            } else if (polyline.Vertices.Count == 1 && !points.Any()){
+            } else if (polyline.Vertices.Count == 1 && !points.Any()){ // Requires System.Linq for .Any()
                  points.Add(new System.Windows.Point(polyline.Vertices[0].Position.X, polyline.Vertices[0].Position.Y));
             }
             return points;
