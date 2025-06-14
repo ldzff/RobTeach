@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using RobTeach.Models;
 using System.IO;
 using System.Diagnostics; // For Debug.WriteLine
+using System; // Added for ArgumentNullException
 
 namespace RobTeach.Services
 {
