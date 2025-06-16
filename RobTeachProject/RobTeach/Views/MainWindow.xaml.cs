@@ -189,42 +189,36 @@ namespace RobTeach.Views
         /// </summary>
         /// <param name="dxfDoc">The DXF document.</param>
         /// <returns>A Rect representing the bounding box, or Rect.Empty if no valid bounds can be determined.</returns>
-        private Rect GetDxfBoundingBox(netDxf.DxfDocument dxfDoc) // Ensure DxfDocument is qualified if using is not present
+        private Rect GetDxfBoundingBox(netDxf.DxfDocument dxfDoc)
         {
             if (dxfDoc == null)
             {
                 return Rect.Empty;
             }
 
-            netDxf.BoundingRectangle overallBox = null; // Use netDxf.BoundingRectangle
+            netDxf.BoundingRectangle overallBox = null;
 
-            // Try to get extents from header first
-            // netDxf.HeaderVariables header = dxfDoc.Header; // Not needed directly if accessing header.Extents
             if (dxfDoc.Header.Extents != null && dxfDoc.Header.Extents.IsValid)
             {
-                // Assuming dxfDoc.Header.Extents IS a BoundingRectangle.
-                // If it's another type that WRAPS a BoundingRectangle, adjust accordingly.
-                // For netDxf, Header.Extents is typically a BoundingRectangle.
                 overallBox = new netDxf.BoundingRectangle(
-                    dxfDoc.Header.Extents.Min.ToVector2(), // Use .Min
-                    dxfDoc.Header.Extents.Max.ToVector2()  // Use .Max
+                    dxfDoc.Header.Extents.Min.ToVector2(),
+                    dxfDoc.Header.Extents.Max.ToVector2()
                 );
             }
 
-            // Union with entity bounding boxes for more precision if entities exist
-            if (dxfDoc.Entities.All != null && dxfDoc.Entities.All.Any()) // Check Entities.All for null as well
+            if (dxfDoc.Entities.All != null && dxfDoc.Entities.All.Any())
             {
                 foreach (var entity in dxfDoc.Entities.All)
                 {
-                    if (entity == null) continue; // Skip null entities
+                    if (entity == null) continue;
 
-                    netDxf.BoundingRectangle entityBox = entity.BoundingBox; // This is netDxf.BoundingRectangle
-                    if (entityBox != null && entityBox.IsValid) // Check if entityBox is valid
+                    netDxf.BoundingRectangle entityBox = entity.BoundingBox;
+                    if (entityBox != null && entityBox.IsValid)
                     {
-                        if (overallBox == null || !overallBox.IsValid) // If overallBox is still null or invalid
-                            overallBox = entityBox; // Initialize with the first valid entity box.
+                        if (overallBox == null || !overallBox.IsValid)
+                            overallBox = entityBox;
                         else
-                            overallBox.Union(entityBox); // Expand overallBox to include this entity.
+                            overallBox.Union(entityBox);
                     }
                 }
             }
