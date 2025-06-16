@@ -11,9 +11,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using netDxf;
+using netDxf; // Required for DxfDocument
 using netDxf.Entities;
-using netDxf.Header; // Required for DxfHeader and HeaderVariables
+using netDxf.Header; // Required for DxfHeader and HeaderVariables for BoundingRectangle access
 using System.IO;
 // using System.Windows.Threading; // Was for optional Dispatcher.Invoke, not currently used.
 // using System.Text.RegularExpressions; // Was for optional IP validation, not currently used.
@@ -162,7 +162,7 @@ namespace RobTeach.Views
                 MessageBox.Show($"DXF file not found:\n{fnfEx.Message}", "Error Loading DXF", MessageBoxButton.OK, MessageBoxImage.Error);
                 _currentDxfDocument = null;
             }
-            // Removed specific catch for netDxf.DxfVersionNotSupportedException to simplify, general Exception will catch it.
+            // Removed specific catch for netDxf.DxfVersionNotSupportedException. General Exception will handle DXF-specific errors.
             catch (Exception ex) {
                 StatusTextBlock.Text = "Error loading or processing DXF file.";
                 MessageBox.Show($"An error occurred while loading or processing the DXF file:\n{ex.Message}\n\nEnsure the file is a valid DXF format.", "Error Loading DXF", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -185,38 +185,43 @@ namespace RobTeach.Views
         private void SendToRobotButton_Click(object sender, RoutedEventArgs e) { /* ... (No change) ... */ }
 
         /// <summary>
-        /// Calculates the bounding box of all entities in the provided DXF document.
-        /// Prioritizes header extents if valid, otherwise computes from all entities.
+        /// Calculates the overall bounding box of the DXF document, considering header extents and all entity extents.
         /// </summary>
-        /// <param name="dxfDoc">The <see cref="DxfDocument"/> to analyze.</param>
-        /// <returns>A <see cref="Rect"/> representing the overall bounding box in DXF coordinates. Returns Rect.Empty if no valid bounds found.</returns>
-        private Rect GetDxfBoundingBox(DxfDocument dxfDoc)
+        /// <param name="dxfDoc">The DXF document.</param>
+        /// <returns>A Rect representing the bounding box, or Rect.Empty if no valid bounds can be determined.</returns>
+        private Rect GetDxfBoundingBox(netDxf.DxfDocument dxfDoc) // Ensure DxfDocument is qualified if using is not present
         {
-            if (dxfDoc == null) return Rect.Empty;
-
-            HeaderVariables header = dxfDoc.Header;
-            BoundingRectangle overallBox = null;
-
-            // Check if header extents are valid and usable.
-            // netDxf uses Vector3 for ExtMin/ExtMax. Ensure they form a valid range.
-            if (header.ExtMin != null && header.ExtMax != null &&
-                (header.ExtMax.X > header.ExtMin.X || header.ExtMax.Y > header.ExtMin.Y || header.ExtMax.Z > header.ExtMin.Z) )
+            if (dxfDoc == null)
             {
-                 // Use ToVector2() if the Z component should be ignored for 2D bounding box.
-                overallBox = new BoundingRectangle(header.ExtMin.ToVector2(), header.ExtMax.ToVector2());
+                return Rect.Empty;
             }
 
-            // If header extents were not valid or not preferred, union with entity bounding boxes.
-            // If header extents were valid, this loop refines them with actual entity bounds.
-            if (dxfDoc.Entities.All.Any())
+            netDxf.BoundingRectangle overallBox = null; // Use netDxf.BoundingRectangle
+
+            // Try to get extents from header first
+            // netDxf.HeaderVariables header = dxfDoc.Header; // Not needed directly if accessing header.Extents
+            if (dxfDoc.Header.Extents != null && dxfDoc.Header.Extents.IsValid)
+            {
+                // Assuming dxfDoc.Header.Extents IS a BoundingRectangle.
+                // If it's another type that WRAPS a BoundingRectangle, adjust accordingly.
+                // For netDxf, Header.Extents is typically a BoundingRectangle.
+                overallBox = new netDxf.BoundingRectangle(
+                    dxfDoc.Header.Extents.Min.ToVector2(), // Use .Min
+                    dxfDoc.Header.Extents.Max.ToVector2()  // Use .Max
+                );
+            }
+
+            // Union with entity bounding boxes for more precision if entities exist
+            if (dxfDoc.Entities.All != null && dxfDoc.Entities.All.Any()) // Check Entities.All for null as well
             {
                 foreach (var entity in dxfDoc.Entities.All)
                 {
-                    if (entity == null) continue;
-                    BoundingRectangle entityBox = entity.BoundingBox; // This can be null for some entities.
-                    if (entityBox != null && entityBox.IsValid) // Check if entityBox itself is valid.
+                    if (entity == null) continue; // Skip null entities
+
+                    netDxf.BoundingRectangle entityBox = entity.BoundingBox; // This is netDxf.BoundingRectangle
+                    if (entityBox != null && entityBox.IsValid) // Check if entityBox is valid
                     {
-                        if (overallBox == null || !overallBox.IsValid) // If overallBox is still null or became invalid
+                        if (overallBox == null || !overallBox.IsValid) // If overallBox is still null or invalid
                             overallBox = entityBox; // Initialize with the first valid entity box.
                         else
                             overallBox.Union(entityBox); // Expand overallBox to include this entity.
@@ -224,9 +229,12 @@ namespace RobTeach.Views
                 }
             }
 
-            if (overallBox == null || !overallBox.IsValid) return Rect.Empty;
+            if (overallBox == null || !overallBox.IsValid)
+            {
+                return Rect.Empty;
+            }
 
-            return new Rect(overallBox.Min.X, overallBox.Min.Y, overallBox.Width, overallBox.Height);
+            return new System.Windows.Rect(overallBox.Min.X, overallBox.Min.Y, overallBox.Width, overallBox.Height);
         }
 
         private void FitToViewButton_Click(object sender, RoutedEventArgs e) { /* ... (No change) ... */ }
